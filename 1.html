@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>708班随机点名器</title>
+<style>
+body {
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+font-family: 'KaiTi', 'STKaiti', cursive;
+min-height: 100vh;
+margin: 0;
+display: grid;
+place-items: center;
+background: #f0f2f5;
+}
+.container {
+padding: 2rem;
+background: white;
+border-radius: 1rem;
+box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+text-align: center;
+width: 90%;
+max-width: 400px;
+}
+h1 {
+color: #2c3e50;
+margin-bottom: 1.5rem;
+font-size: 1.5rem;
+}
+#display {
+margin: 2rem 0;
+min-height: 80px;
+min-width: 200px;
+display: flex;
+align-items: center;
+justify-content: center;
+background: #f8f9fa;
+border-radius: 8px;
+font-size: 1.8rem;
+transition: transform 0.3s ease;
+}
+button {
+padding: 0.8rem 2rem;
+font-size: 1rem;
+background: #4a90e2;
+color: white;
+border: none;
+border-radius: 25px;
+cursor: pointer;
+transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+transform: scale(1);
+box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+position: relative;
+overflow: hidden;
+}
+button:hover {
+transform: translateY(-2px) scale(1.03);
+box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+button:active {
+transform: scale(0.96);
+}
+@keyframes pulse {
+0% {transform: scale(1);box-shadow: 0 0 0 0 rgba(74, 144, 226, 0.5);}
+70% {transform: scale(1.02);box-shadow: 0 0 0 12px rgba(74, 144, 226, 0);}
+100% {transform: scale(1);box-shadow: 0 0 0 0 rgba(74, 144, 226, 0);}
+}
+.running {
+animation: pulse 1.5s ease-in-out infinite;
+background: #357abd;
+}
+@keyframes ripple {
+to {transform: scale(4);opacity: 0;}
+}
+.ripple-effect {
+position: absolute;
+border-radius: 50%;
+background: rgba(255,255,255,0.4);
+transform: scale(0);
+animation: ripple 600ms linear;
+pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🎲随机点名器🎲</h1>
+<div id="display">/等待中\</div>
+<button id="controlBtn"><span class="btn-content">▶️ 开始点名</span></button>
+</div>
+
+<script>
+const names =['曹洋恺','曾崇涵','曾祥鑫','陈逸豪','邓子轩','董雨扬','郭家麟','何艾芸','胡竣豪','华海全','黄子淇','L江俊杰','S江俊杰','江梓乐','康可盈','蓝君雄','李俊轩','李泽畅','梁恩豪','梁有源','林储轩','林曼琦','林心怡','刘家豪','刘俊杰','刘诗雨','刘雨琦','卢俊希','卢思妍','吕其蔚','蒙锦亮','彭徐珍','谭冰玉','汤沚蓥','陶一佳','翁幸怡','巫炳红','吴克林','吴铭燊','吴千杨','伍炜杰','伍以雯','夏倚晴','谢锌莉','杨琰','杨紫琪','叶子琳','游昊翔','余玥','张雅瑄','张绎','周熙嘉','朱胜林','朱业康','祝启辰'];
+let isRunning = false;
+let intervalId;
+const display = document.getElementById('display');
+const button = document.getElementById('controlBtn');
+
+function createRipple(e) {
+const ripple = document.createElement('div');
+const rect = button.getBoundingClientRect();
+const size = Math.max(rect.width, rect.height);
+ripple.style.width = ripple.style.height = `${size}px`;
+ripple.style.left = `${e.clientX - rect.left - size/2}px`;
+ripple.style.top = `${e.clientY - rect.top - size/2}px`;
+ripple.classList.add('ripple-effect');
+button.appendChild(ripple);
+setTimeout(() => ripple.remove(), 600);
+}
+
+button.addEventListener('click', (e) => {
+createRipple(e);
+isRunning ? stopRolling() : startRolling();
+});
+
+function startRolling() {
+if (names.length < 1) {
+display.textContent = "⚠️ 名单为空";
+return;
+}
+isRunning = true;
+button.classList.add('running');
+button.querySelector('.btn-content').textContent = "⏹️ 停止点名";
+display.style.transform = 'scale(1.05)';
+setTimeout(() => display.style.transform = 'scale(1)', 100);
+intervalId = setInterval(() => {
+const randomIndex = Math.floor(Math.random() * names.length);
+display.textContent = names[randomIndex];
+display.style.transform = 'translateX(2px)';
+setTimeout(() => display.style.transform = 'translateX(0)', 50);
+}, 120);
+}
+
+function stopRolling() {
+clearInterval(intervalId);
+isRunning = false;
+button.classList.remove('running');
+button.querySelector('.btn-content').textContent = "▶️ 开始点名";
+display.style.transform = 'scale(1.1)';
+setTimeout(() => display.style.transform = 'scale(1)', 200);
+}
+</script>
+</body>
+</html>
