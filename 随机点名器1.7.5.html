@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>随机点名器</title>
+    <style>
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            font-family: 'KaiTi', 'STKaiti', cursive;
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            background: #f0f2f5;
+        }
+
+        .container {
+            padding: 1rem 0.5rem 2rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        #display {
+            margin: 2rem 0;
+            min-height: 70px;
+            min-width: 160px;
+            max-width: 200px;
+            margin: 2rem auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 1.8rem;
+            transition: transform 0.3s ease;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: scale(1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(74, 144, 226, 0.5);
+            }
+
+            70% {
+                transform: scale(1.02);
+                box-shadow: 0 0 0 12px rgba(74, 144, 226, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(74, 144, 226, 0);
+            }
+        }
+
+        .running {
+            animation: pulse 1.5s ease-in-out infinite;
+            background: #357abd;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .ripple-effect {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0);
+            animation: ripple 600ms linear;
+            pointer-events: none;
+        }
+
+        .settings-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            transition: 0.3s ease;
+            z-index: 1000;
+        }
+
+        .settings-modal.active {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            z-index: 900;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        .setting-item {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .color-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-box:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        #historyList {
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+            padding-right: 8px;
+        }
+
+        .version {
+            font-size: 12px;
+            color: #999;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .history-btn {
+            margin-left: 10px;
+        }
+
+        .background-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 15px 0;
+        }
+
+        .image-control {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        #historyModal {
+            width: 350px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        #historyModal h3 {
+            margin: 0;
+        }
+
+        #clearHistoryBtn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+        }
+
+        #historyList::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #historyList::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        #historyList::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        #historyList::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        #historyList>div {
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            transition: background-color 0.2s;
+        }
+
+        #historyList>div:hover {
+            background-color: #f9f9f9;
+        }
+
+        .empty-history {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+        }
+
+        .speed-control span {
+            margin: 0 10px;
+        }
+
+        .download-link {
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+            display: none;
+        }
+
+        .image-control button {
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔎随机点名器<span id="settingsBtn" style="cursor: pointer">🎲</span></h1>
+        <div id="display">准备中</div>
+        <button id="controlBtn"><span class="btn-content">▶️ 开始</span></button>
+        <button class="history-btn" onclick="openHistoryModal()">⏰历史记录</button>
+    </div>
+    <div class="overlay"></div>
+    <div class="settings-modal">
+        <div class="setting-item">
+            <h3>背景设置</h3>
+            <div class="background-controls">
+                <input type="color" id="customColor" onchange="setBackground(this.value); changePaletteColor(this.value)"
+                    style="margin:10px 0">
+                <div class="color-palette">
+                    <div class="color-box" style="background:#ffffff"
+                        onclick="setBackground('#ffffff'); changePaletteColor(this.style.background)"></div>
+                    <div class="color-box" style="background:#f0f2f5"
+                        onclick="setBackground('#f0f2f5'); changePaletteColor(this.style.background)"></div>
+                    <div class="color-box" style="background:#ffe6e6"
+                        onclick="setBackground('#ffe6e6'); changePaletteColor(this.style.background)"></div>
+                    <div class="color-box" style="background:#e6f7ff"
+                        onclick="setBackground('#e6f7ff'); changePaletteColor(this.style.background)"></div>
+                </div>
+                <div class="image-control">
+                    <button onclick="setRecommendedBackground()">推荐壁纸🎨</button>
+                    <a href="#" class="download-link" id="downloadLink">下载壁纸📥</a>
+                </div>
+            </div>
+        </div>
+        <div class="setting-item">
+            <h3>速度设置</h3>
+            <div class="speed-control">
+                <span>快</span>
+                <input type="range" id="speed" min="50" max="500" value="120" style="width:80%" step="50">
+                <span>慢</span>
+            </div>
+        </div>
+        <div class="version">版本号 v1.7.5</div>
+    </div>
+    <div class="settings-modal" id="historyModal">
+        <div class="history-header">
+            <h3>历史记录</h3>
+            <button id="clearHistoryBtn">清空</button>
+        </div>
+        <div id="historyList"></div>
+    </div>
+    <script>
+        const allNames = ['曹洋恺', '曾崇涵', '曾祥鑫', '陈逸豪', '邓子轩', '董雨扬', '郭家麟', '何艾芸', '胡竣豪', '华海全', '黄子淇', 'L江俊杰', 'S江俊杰', '江梓乐', '康可盈', '蓝君雄', '李俊轩', '李泽畅', '梁恩豪', '梁有源', '林储轩', '林曼琦', '林心怡', '刘家豪', '刘俊杰', '刘诗雨', '刘雨琦', '卢俊希', '卢思妍', '吕其蔚', '蒙锦亮', '彭徐珍', '谭冰玉', '汤沚蓥', '陶一佳', '翁幸怡', '巫炳红', '吴克林', '吴铭燊', '吴千杨', '伍炜杰', '伍以雯', '夏倚晴', '谢锌莉', '杨琰', '杨紫琪', '叶子琳', '游昊翔', '余玥', '张雅瑄', '张绎', '周熙嘉', '朱胜林', '朱业康', '祝启辰'];
+        let availableNames = [...allNames];
+        let isRunning = false;
+        let intervalId;
+        let intervalTime = 120;
+        let history = [];
+        let historyEnabled = true;
+        let selectedCount = 0;
+        const halfCount = Math.floor(allNames.length / 2);
+        const display = document.getElementById('display');
+        const button = document.getElementById('controlBtn');
+        const settingsModal = document.querySelector('.settings-modal');
+        const overlay = document.querySelector('.overlay');
+        const historyModal = document.getElementById('historyModal');
+        let currentBackgroundUrl = null;
+        const downloadLink = document.getElementById('downloadLink');
+
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            settingsModal.classList.add('active');
+            overlay.classList.add('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            settingsModal.classList.remove('active');
+            overlay.classList.remove('active');
+            historyModal.classList.remove('active');
+        });
+
+        document.getElementById('speed').addEventListener('input', (e) => {
+            intervalTime = e.target.value;
+        });
+
+        function createRipple(e) {
+            const ripple = document.createElement('div');
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+            ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+            ripple.classList.add('ripple-effect');
+            button.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        }
+
+        button.addEventListener('click', (e) => {
+            createRipple(e);
+            isRunning ? stopRolling() : startRolling();
+        });
+
+        function startRolling() {
+            if (availableNames.length < 1) {
+                if (selectedCount < halfCount) {
+                    availableNames = [...allNames].filter(name => !history.includes(name));
+                } else {
+                    availableNames = [...allNames];
+                    selectedCount = 0;
+                }
+            }
+            if (availableNames.length < 1) {
+                display.textContent = "名单为空";
+                return;
+            }
+            isRunning = true;
+            button.classList.add('running');
+            button.querySelector('.btn-content').textContent = "⏹️ 停止";
+            display.style.transform = 'none';
+            setTimeout(() => display.style.transform = 'scale(1)', 100);
+            intervalId = setInterval(() => {
+                const randomIndex = Math.floor(Math.random() * availableNames.length);
+                const selectedName = availableNames[randomIndex];
+                display.textContent = selectedName;
+                display.style.transform = 'translateX(2px)';
+                setTimeout(() => display.style.transform = 'translateX(0)', 50);
+            }, intervalTime);
+        }
+
+        function stopRolling() {
+            clearInterval(intervalId);
+            isRunning = false;
+            button.classList.remove('running');
+            button.querySelector('.btn-content').textContent = "▶️ 开始";
+            display.style.transform = 'scale(1.2)';
+            setTimeout(() => display.style.transform = 'scale(1)', 200);
+            if (historyEnabled) {
+                history.push(display.textContent);
+                localStorage.setItem('rollHistory', JSON.stringify(history));
+            }
+            const selectedName = display.textContent;
+            const index = availableNames.indexOf(selectedName);
+            if (index > -1) {
+                availableNames.splice(index, 1);
+            }
+            selectedCount++;
+            if (selectedCount >= halfCount) {
+                availableNames = [...allNames];
+                selectedCount = 0;
+            }
+        }
+
+        function setBackground(value) {
+            if (value.startsWith('#')) {
+                document.body.style.background = value;
+                document.body.style.backgroundImage = 'none';
+                currentBackgroundUrl = null;
+                const buttons = document.querySelectorAll('button');
+                buttons.forEach(btn => {
+                    btn.style.backgroundColor = value;
+                    const contrastColor = getContrastColor(value);
+                    btn.style.color = contrastColor;
+                });
+                downloadLink.style.display = 'none';
+            } else if (value) {
+                document.body.style.backgroundImage = `url('${value}')`;
+                document.body.style.backgroundSize = 'cover';
+                currentBackgroundUrl = value;
+                downloadLink.style.display = 'inline';
+            }
+        }
+
+        function getContrastColor(hexColor) {
+            hexColor = hexColor.replace('#', '');
+            const r = parseInt(hexColor.slice(0, 2), 16);
+            const g = parseInt(hexColor.slice(2, 4), 16);
+            const b = parseInt(hexColor.slice(4, 6), 16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            return brightness > 128 ? '#000000' : '#ffffff';
+        }
+
+        function changePaletteColor(color) {
+            document.querySelectorAll('.color-box').forEach(box => {
+                box.style.boxShadow = `0 0 0 2px ${color}`;
+            });
+        }
+
+        function updateHistoryList() {
+            const list = document.getElementById('historyList');
+            if (history.length === 0) {
+                list.innerHTML = '<div class="empty-history">还没有历史记录哦</div>';
+            } else {
+                list.innerHTML = history.reverse().map((item, index) =>
+                    `<div>${index + 1}. ${item}</div>`
+                ).join('');
+            }
+        }
+
+        function setRecommendedBackground() {
+            fetch('https://picsum.photos/1920/1080')
+               .then(response => {
+                    const actualUrl = response.url;
+                    setBackground(actualUrl);
+                    settingsModal.classList.remove('active');
+                    overlay.classList.remove('active');
+                })
+               .catch(error => {
+                    console.error('获取推荐壁纸时出错:', error);
+                    alert('获取推荐壁纸失败，请重试');
+                });
+        }
+
+        function openHistoryModal() {
+            if (history.length === 0) {
+                document.getElementById('historyList').innerHTML = '<div class="empty-history">还没有历史记录哦</div>';
+            } else {
+                updateHistoryList();
+            }
+            historyModal.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        document.getElementById('clearHistoryBtn').addEventListener('click', function () {
+            history = [];
+            localStorage.removeItem('rollHistory');
+            updateHistoryList();
+        });
+
+        const savedHistory = localStorage.getItem('rollHistory');
+        if (savedHistory) history = JSON.parse(savedHistory);
+        updateHistoryList();
+
+        downloadLink.addEventListener('click', async () => {
+            try {
+                const response = await fetch(currentBackgroundUrl);
+                if (!response.ok) {
+                    throw new Error(`下载失败: ${response.status} ${response.statusText}`);
+                }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'wallpaper.jpg';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('下载壁纸时出错:', error);
+                alert('下载壁纸失败，请重试');
+            }
+        });
+    </script>
+</body>
+
+</html>
